@@ -54,3 +54,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local release automation
+/deploy/
+*.p8
+
+/docs/
+
+# Generated Xcode build cache
+/ios/build/

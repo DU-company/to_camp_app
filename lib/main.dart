@@ -4,12 +4,15 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_camp/core/const/data.dart';
+import 'package:to_camp/core/service/naver_map_service.dart';
 import 'package:to_camp/core/theme/service/theme_service.dart';
 import 'package:to_camp/core/router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+
+  await initializeNaverMap();
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp, // 세로 모드로 고정

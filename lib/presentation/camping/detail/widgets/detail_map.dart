@@ -1,9 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:platform_maps_flutter/platform_maps_flutter.dart';
+import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:to_camp/presentation/common/widgets/custom_divider.dart';
 import 'package:to_camp/presentation/common/widgets/custom_map_view.dart';
 import 'package:to_camp/presentation/common/widgets/tile.dart';
@@ -91,60 +90,45 @@ class _Address extends ConsumerWidget {
   }
 }
 
-class _Map extends ConsumerWidget {
+class _Map extends StatelessWidget {
   final CampingModel model;
-  const _Map({super.key, required this.model});
+  const _Map({required this.model});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    late final PlatformMapController? mapController;
-    final markerIcons = ref.watch(markerIconProvider);
-
-    if (model.lat == 0 || model.lng == 0 || markerIcons.isEmpty) {
-      return SizedBox();
+  Widget build(BuildContext context) {
+    if (model.lat == 0 || model.lng == 0) {
+      return const SizedBox.shrink();
     }
 
+    final position = NLatLng(model.lat, model.lng);
     return ClipRRect(
       borderRadius: BorderRadiusGeometry.circular(16),
       child: SizedBox(
         height: 300,
         child: CustomMapView(
-          initialCameraPosition: CameraPosition(
-            target: LatLng(model.lat, model.lng),
+          key: ValueKey((model.id, model.lat, model.lng)),
+          forceGesture: true,
+          initialCameraPosition: NCameraPosition(
+            target: position,
             zoom: 14,
           ),
-          markers: Set.from(_setMarkers(markerIcons)),
-          onMapCreated: (controller) async {
-            await Future.delayed(Duration(milliseconds: 100));
-            mapController = controller;
-            if (mapController != null) {
-              await mapController!.showMarkerInfoWindow(
-                MarkerId(model.id),
-              );
-            }
-          },
-          onCameraMoveStarted: null,
-          onCameraMove: null,
-          onCameraIdle: null,
+          markers: [
+            NMarker(
+              id: model.id,
+              position: position,
+              icon: CampingMarkerIcon.tent.image,
+              size: const Size(36, 42),
+              anchor: const NPoint(0.5, 1),
+            ),
+          ],
+          selectedId: model.id,
+          infoText: [
+            model.name,
+            model.address,
+          ].where((line) => line.isNotEmpty).join('\n'),
         ),
       ),
     );
-  }
-
-  List<Marker> _setMarkers(List<Uint8List> markerIcons) {
-    if (markerIcons.isEmpty) return [];
-
-    return [
-      Marker(
-        markerId: MarkerId(model.id),
-        position: LatLng(model.lat, model.lng),
-        infoWindow: InfoWindow(
-          title: model.name,
-          snippet: model.address,
-        ),
-        icon: BitmapDescriptor.fromBytes(markerIcons.first),
-      ),
-    ];
   }
 }
 

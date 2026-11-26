@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:platform_maps_flutter/platform_maps_flutter.dart';
+import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:to_camp/core/service/toast_service.dart';
 import 'package:to_camp/presentation/camping/location/widgets/dialog/gps_enable_dialog.dart';
 import 'package:to_camp/presentation/camping/location/widgets/dialog/location_permission_dialog.dart';
@@ -62,14 +62,14 @@ class _LocationScreenState extends ConsumerState<LocationScreen>
 
   void _onTapMyLocation(
     LocationState location,
-    PlatformMapController mapController,
+    NaverMapController mapController,
   ) {
     // LocationState 가 success면 내 위치로 카메라 이동
     if (location is LocationSuccess) {
-      mapController.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          LatLng(location.lat, location.lng),
-          13,
+      mapController.updateCamera(
+        NCameraUpdate.withParams(
+          target: NLatLng(location.lat, location.lng),
+          zoom: 13,
         ),
       );
       // Error인 경우에는 다이얼로그
