@@ -9,7 +9,7 @@ import 'package:to_camp/core/theme/res/layout.dart';
 import 'package:to_camp/presentation/camping/base/based_list_view_model.dart';
 import 'package:to_camp/presentation/camping/base/camping_screen.dart';
 import 'package:to_camp/presentation/camping/location/utils/location_utils.dart';
-import 'package:to_camp/presentation/camping/location/widgets/location_camping_card.dart';
+import 'package:to_camp/presentation/camping/location/widgets/location_card_carousel.dart';
 import 'package:to_camp/presentation/camping/location/widgets/refresh_button.dart';
 import 'package:to_camp/presentation/camping/location/widgets/show_card_button.dart';
 import 'package:to_camp/presentation/camping/wishlist/utils/wishlist_utils.dart';
@@ -74,7 +74,7 @@ class _LocationCampingScreenState
           p is! PaginationSuccess &&
           n is PaginationSuccess<CampingModel> &&
           n.items.isNotEmpty) {
-        onTapMarker(n.items.first);
+        selectCamping(n.items.first);
       }
     });
   }
@@ -125,6 +125,10 @@ class _LocationCampingScreenState
                   onTapMyLocation: () {
                     final controller = mapController;
                     if (controller != null) {
+                      if (widget.location is LocationSuccess) {
+                        selectionRequest++;
+                        setState(() => showCard = false);
+                      }
                       widget.onTapMyLocation(controller);
                     }
                   },
@@ -135,11 +139,27 @@ class _LocationCampingScreenState
             const SizedBox(height: 4),
             if (hasItem && showCard)
               Flexible(
-                child: GestureDetector(
-                  child: LocationCampingCard(model: targetModel!),
-                  onTap: () => ref
-                      .read(basedListViewModelProvider.notifier)
-                      .onCampingCardTap(context, targetModel),
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.paddingOf(context).bottom + 88,
+                  ),
+                  child: SizedBox(
+                    width: context.layout(
+                      null,
+                      desktop: context.width / 2,
+                    ),
+                    height: context.layout(200, mobile: 120),
+                    child: LocationCardCarousel(
+                      models: totalModels,
+                      selectedIndex: totalModels.indexOf(
+                        targetModel!,
+                      ),
+                      onSelect: selectCamping,
+                      onOpen: (model) => ref
+                          .read(basedListViewModelProvider.notifier)
+                          .onCampingCardTap(context, model),
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -167,13 +187,14 @@ class _LocationCampingScreenState
             ),
             onMarkerTap: (id) {
               final model = modelsById[id];
-              if (model != null) onTapMarker(model);
+              if (model != null) selectCamping(model);
             },
             onMapCreated: (controller) {
               mapController = controller;
-              if (targetModel != null) onTapMarker(targetModel);
+              if (targetModel != null) selectCamping(targetModel);
             },
-            onCameraMoveStarted: () => setState(() {
+            onMapGestureStarted: () => setState(() {
+              selectionRequest++;
               showCard = false;
             }),
             onCameraMove: (cameraPosition) {
@@ -194,7 +215,7 @@ class _LocationCampingScreenState
     );
   }
 
-  Future<void> onTapMarker(CampingModel targetModel) async {
+  Future<void> selectCamping(CampingModel targetModel) async {
     final controller = mapController;
     if (controller == null) return;
     final request = ++selectionRequest;
@@ -223,7 +244,7 @@ class _LocationCampingScreenState
       );
     } else {
       /// 현재 index에 대한 카드 띄우기
-      onTapMarker(targetModel);
+      selectCamping(targetModel);
     }
   }
 
@@ -248,7 +269,7 @@ class _LocationCampingScreenState
         if (state.items.isEmpty) {
           ToastService.show(text: '근처 캠핑장을 찾을 수 없어요', isError: true);
         } else {
-          await onTapMarker(state.items.first);
+          await selectCamping(state.items.first);
         }
       }
     } finally {

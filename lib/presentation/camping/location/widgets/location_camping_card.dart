@@ -4,10 +4,7 @@ import 'package:to_camp/core/theme/res/layout.dart';
 import 'package:to_camp/core/theme/service/theme_service.dart';
 import 'package:to_camp/data/models/camping_model.dart';
 import 'package:to_camp/presentation/camping/base/widgets/address_box.dart';
-import 'package:to_camp/presentation/camping/base/widgets/features_box.dart';
-import 'package:to_camp/presentation/camping/base/widgets/etc_box.dart';
 import 'package:to_camp/presentation/camping/base/widgets/image_box.dart';
-import 'package:to_camp/presentation/camping/base/widgets/intro_box.dart';
 import 'package:to_camp/presentation/camping/base/widgets/name_box.dart';
 import 'package:to_camp/presentation/camping/wishlist/widgets/like_button.dart';
 
@@ -19,20 +16,10 @@ class LocationCampingCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = ref.watch(themeServiceProvider);
 
-    final size = MediaQuery.of(context).size;
-    final safeAreaBottom = MediaQuery.of(context).padding.bottom;
-
     return Container(
-      height: context.layout(200, mobile: 120),
-      width: context.layout(null, desktop: size.width / 2),
       decoration: BoxDecoration(
         color: theme.color.surface,
         borderRadius: BorderRadius.circular(12),
-      ),
-      margin: EdgeInsets.only(
-        right: 12,
-        left: context.layout(12, tablet: null, desktop: null),
-        bottom: safeAreaBottom + 88,
       ),
       padding: const EdgeInsets.all(8),
 

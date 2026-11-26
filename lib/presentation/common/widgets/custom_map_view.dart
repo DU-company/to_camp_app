@@ -15,7 +15,7 @@ class CustomMapView extends ConsumerStatefulWidget {
     this.onMarkerTap,
     this.logoTopInset = 0,
     this.onMapCreated,
-    this.onCameraMoveStarted,
+    this.onMapGestureStarted,
     this.onCameraMove,
     this.onCameraIdle,
   });
@@ -27,7 +27,7 @@ class CustomMapView extends ConsumerStatefulWidget {
   final ValueChanged<String>? onMarkerTap;
   final double logoTopInset;
   final ValueChanged<NaverMapController>? onMapCreated;
-  final VoidCallback? onCameraMoveStarted;
+  final VoidCallback? onMapGestureStarted;
   final ValueChanged<NCameraPosition>? onCameraMove;
   final VoidCallback? onCameraIdle;
 
@@ -172,10 +172,10 @@ class _CustomMapViewState extends ConsumerState<CustomMapView> {
         _sync();
         widget.onMapCreated?.call(controller);
       },
-      onCameraChange: (_, _) {
-        if (!_moving) {
+      onCameraChange: (reason, _) {
+        if (!_moving && reason == NCameraUpdateReason.gesture) {
           _moving = true;
-          widget.onCameraMoveStarted?.call();
+          widget.onMapGestureStarted?.call();
         }
         final position = _controller?.nowCameraPosition;
         if (position != null) widget.onCameraMove?.call(position);
