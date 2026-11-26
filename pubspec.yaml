@@ -44,7 +44,6 @@ dependencies:
 
   # location
   geolocator: ^14.0.2
-  platform_maps_flutter: ^2.0.0-beta
 
   # state
   flutter_riverpod: ^3.0.3
@@ -99,7 +98,6 @@ flutter:
   uses-material-design: true
 
   assets:
-    - asset/map_style/
     - asset/img/
     - .env
 

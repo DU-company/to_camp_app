@@ -1,8 +1,6 @@
 PODS:
   - app_links (6.4.1):
     - Flutter
-  - apple_maps_flutter (0.0.1):
-    - Flutter
   - Flutter (1.0.0)
   - flutter_naver_map (1.4.2):
     - Flutter
@@ -33,7 +31,6 @@ PODS:
 
 DEPENDENCIES:
   - app_links (from `.symlinks/plugins/app_links/ios`)
-  - apple_maps_flutter (from `.symlinks/plugins/apple_maps_flutter/ios`)
   - Flutter (from `Flutter`)
   - flutter_naver_map (from `.symlinks/plugins/flutter_naver_map/ios`)
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
@@ -53,8 +50,6 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   app_links:
     :path: ".symlinks/plugins/app_links/ios"
-  apple_maps_flutter:
-    :path: ".symlinks/plugins/apple_maps_flutter/ios"
   Flutter:
     :path: Flutter
   flutter_naver_map:
@@ -78,7 +73,6 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
-  apple_maps_flutter: 2237d66a8e242082a2d88134af372f7b3375d7a6
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_naver_map: d9f447f1271059759d4d5e38c3b347d7ab2ba835
   fluttertoast: 2c67e14dce98bbdb200df9e1acf610d7a6264ea1
