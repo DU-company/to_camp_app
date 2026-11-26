@@ -1,8 +1,7 @@
-import 'dart:ui' show Offset;
-import 'package:flutter/foundation.dart';
+import 'dart:ui' show Size;
+import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:to_camp/core/provider/marker_icon_provider.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:platform_maps_flutter/platform_maps_flutter.dart';
 import 'package:to_camp/data/models/camping_model.dart';
 import 'package:to_camp/data/models/like_category_model.dart';
 import 'package:to_camp/presentation/camping/wishlist/utils/wishlist_utils.dart';
@@ -42,21 +41,16 @@ class LocationUtils {
     return models;
   }
 
-  static List<Marker> createMarkers({
+  static List<NMarker> createMarkers({
     required List<CampingModel> totalModels,
     required List<LikeCategoryModel> wishlist,
-    required List<Uint8List> markerIcons,
     required String? selectedId,
-    required Function(CampingModel model) onTap,
   }) {
-    if (markerIcons.isEmpty) return [];
-
-    final icons = markerIcons
-        .map(BitmapDescriptor.fromBytes)
-        .toList();
-    return List.generate(totalModels.length, (index) {
-      final model = totalModels[index];
-      final isLiked = WishlistUtils.checkIsLiked(wishlist, model);
+    final likedIds = WishlistUtils.extractCampingList(
+      wishlist,
+    ).map((model) => model.id).toSet();
+    return totalModels.map((model) {
+      final isLiked = likedIds.contains(model.id);
       final selected = model.id == selectedId;
       final icon = switch ((selected, isLiked)) {
         (true, true) => CampingMarkerIcon.likedTent,
@@ -64,22 +58,15 @@ class LocationUtils {
         (false, true) => CampingMarkerIcon.likedDot,
         (false, false) => CampingMarkerIcon.dot,
       };
-      return Marker(
-        markerId: MarkerId(model.id),
-        icon: icons[icon.index],
+      return NMarker(
+        id: model.id,
+        position: NLatLng(model.lat, model.lng),
+        icon: icon.image,
         anchor: selected
-            ? const Offset(0.5, 1)
-            : const Offset(0.5, 0.5),
-
-        position: LatLng(model.lat, model.lng),
-        onTap: () => onTap(model),
-
-        consumeTapEvents: true,
-        infoWindow: InfoWindow(
-          title: model.name,
-          snippet: model.address,
-        ),
-      );
-    });
+            ? const NPoint(0.5, 1)
+            : const NPoint(0.5, 0.5),
+        size: selected ? const Size(36, 42) : const Size.square(36),
+      )..setZIndex(selected ? 1 : 0);
+    }).toList();
   }
 }

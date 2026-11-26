@@ -1,7 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:to_camp/core/const/data.dart';
 import 'package:to_camp/core/models/pagination_params.dart';
-import 'package:to_camp/core/service/toast_service.dart';
 import 'package:to_camp/data/models/camping_model.dart';
 import 'package:to_camp/data/repositories/camping_repository.dart';
 import 'package:to_camp/presentation/camping/location/screen/location_camping_screen.dart';
@@ -34,11 +32,11 @@ class LocationCampingViewModel extends Notifier<PaginationState> {
 
     try {
       /// 초기값 정의
-      if (isReFetch) {
-        final pState = state as PaginationSuccess<CampingModel>;
+      final previous = state;
+      if (isReFetch && previous is PaginationSuccess<CampingModel>) {
         state = PaginationFetchingMore(
-          items: pState.items,
-          hasMore: pState.hasMore,
+          items: previous.items,
+          hasMore: previous.hasMore,
         );
       } else {
         state = PaginationLoading();

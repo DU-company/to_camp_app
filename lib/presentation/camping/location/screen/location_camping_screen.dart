@@ -2,17 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
-import 'package:platform_maps_flutter/platform_maps_flutter.dart';
+import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:to_camp/core/const/data.dart';
-import 'package:to_camp/core/provider/marker_icon_provider.dart';
 import 'package:to_camp/core/service/toast_service.dart';
 import 'package:to_camp/core/theme/res/layout.dart';
 import 'package:to_camp/presentation/camping/base/based_list_view_model.dart';
 import 'package:to_camp/presentation/camping/base/camping_screen.dart';
 import 'package:to_camp/presentation/camping/location/utils/location_utils.dart';
-import 'package:to_camp/presentation/camping/location/view_model/location_view_model.dart';
-import 'package:to_camp/presentation/camping/location/widgets/dialog/gps_enable_dialog.dart';
-import 'package:to_camp/presentation/camping/location/widgets/dialog/location_permission_dialog.dart';
 import 'package:to_camp/presentation/camping/location/widgets/location_camping_card.dart';
 import 'package:to_camp/presentation/camping/location/widgets/refresh_button.dart';
 import 'package:to_camp/presentation/camping/location/widgets/show_card_button.dart';
@@ -25,14 +21,13 @@ import 'package:to_camp/presentation/camping/location/view_model/location_campin
 import 'package:to_camp/presentation/camping/location/view_model/location_state.dart';
 import 'package:to_camp/core/models/pagination_state.dart';
 
-final cameraPositionProvider = StateProvider<CameraPosition?>(
+final cameraPositionProvider = StateProvider<NCameraPosition?>(
   (ref) => null,
 );
 
 class LocationCampingScreen extends ConsumerStatefulWidget {
   final LocationState location;
-  final void Function(PlatformMapController controller)
-  onTapMyLocation;
+  final void Function(NaverMapController controller) onTapMyLocation;
   const LocationCampingScreen({
     super.key,
     required this.location,
@@ -49,37 +44,37 @@ class _LocationCampingScreenState
     with AutomaticKeepAliveClientMixin {
   bool showRefresh = false;
   bool showCard = true;
-  bool userDrag = false;
+  bool refreshing = false;
   String? selectedId;
   int selectionRequest = 0;
 
-  PlatformMapController? mapController;
+  NaverMapController? mapController;
 
   @override
-  // TODO: implement wantKeepAlive
   bool get wantKeepAlive => true;
 
-  late LatLng initialLatLng;
+  late NLatLng initialLatLng;
 
   @override
   void initState() {
     super.initState();
     if (widget.location is LocationSuccess) {
       final location = widget.location as LocationSuccess;
-      initialLatLng = LatLng(location.lat, location.lng);
+      initialLatLng = NLatLng(location.lat, location.lng);
     } else {
       // 서울의 lat lng
-      initialLatLng = const LatLng(LAT_OF_SEOUL, LNG_OF_SEOUL);
+      initialLatLng = const NLatLng(LAT_OF_SEOUL, LNG_OF_SEOUL);
     }
   }
 
   // home에서 Pagination이 끝나지 않았다면,showCard를 해주기 위해서
-  listenLocationCampingState() {
+  void listenLocationCampingState() {
     ref.listen(locationCampingViewModelProvider, (p, n) {
-      if (p is! PaginationSuccess &&
+      if (!refreshing &&
+          p is! PaginationSuccess &&
           n is PaginationSuccess<CampingModel> &&
           n.items.isNotEmpty) {
-        onTapMarker(models: n.items, targetModel: n.items.first);
+        onTapMarker(n.items.first);
       }
     });
   }
@@ -89,7 +84,6 @@ class _LocationCampingScreenState
     super.build(context);
     listenLocationCampingState();
 
-    final markerIcons = ref.watch(markerIconProvider);
     final wishlist = ref.watch(wishlistViewModelProvider);
     final locationCampingState = ref.watch(
       locationCampingViewModelProvider,
@@ -130,8 +124,9 @@ class _LocationCampingScreenState
                       onTapShowCard(totalModels, targetModel!),
                   onTapMyLocation: () {
                     final controller = mapController;
-                    if (controller != null)
+                    if (controller != null) {
                       widget.onTapMyLocation(controller);
+                    }
                   },
                 ),
               ),
@@ -153,24 +148,31 @@ class _LocationCampingScreenState
       child: Stack(
         children: [
           CustomMapView(
-            initialCameraPosition: CameraPosition(
+            logoTopInset: MediaQuery.paddingOf(context).top,
+            initialCameraPosition: NCameraPosition(
               target: initialLatLng,
               zoom: 12,
             ),
-            markers: Set.from(
-              LocationUtils.createMarkers(
-                totalModels: totalModels,
-                wishlist: wishlist,
-                markerIcons: markerIcons,
-                selectedId: targetModel?.id,
-                onTap: (model) => onTapMarker(
-                  models: totalModels,
-                  targetModel: model,
-                ),
-              ),
+            selectedId: targetModel?.id,
+            infoText: targetModel == null
+                ? null
+                : [
+                    targetModel.name,
+                    targetModel.address,
+                  ].where((part) => part.isNotEmpty).join('\n'),
+            markers: LocationUtils.createMarkers(
+              totalModels: totalModels,
+              wishlist: wishlist,
+              selectedId: targetModel?.id,
             ),
-            onMapCreated: (controller) =>
-                onMapCreated(controller, totalModels),
+            onMarkerTap: (id) {
+              final model = modelsById[id];
+              if (model != null) onTapMarker(model);
+            },
+            onMapCreated: (controller) {
+              mapController = controller;
+              if (targetModel != null) onTapMarker(targetModel);
+            },
             onCameraMoveStarted: () => setState(() {
               showCard = false;
             }),
@@ -179,9 +181,11 @@ class _LocationCampingScreenState
                   cameraPosition;
             },
 
-            onCameraIdle: () => setState(() {
-              showRefresh = true;
-            }),
+            onCameraIdle: () {
+              if (!refreshing && !showRefresh) {
+                setState(() => showRefresh = true);
+              }
+            },
           ),
           if (showRefresh)
             LocationRefreshButton(onRefresh: onTapRefresh),
@@ -190,47 +194,19 @@ class _LocationCampingScreenState
     );
   }
 
-  void onMapCreated(
-    PlatformMapController controller,
-    List<CampingModel> totalModels,
-  ) async {
-    mapController = controller;
-    final request = selectionRequest;
-    await Future.delayed(Duration(milliseconds: 333));
-    if (!mounted || request != selectionRequest) return;
-    if (totalModels.isNotEmpty) {
-      onTapMarker(
-        models: totalModels,
-        targetModel: totalModels.first,
-      );
-    }
-  }
-
-  Future<void> onTapMarker({
-    required List<CampingModel> models,
-    required CampingModel targetModel,
-  }) async {
+  Future<void> onTapMarker(CampingModel targetModel) async {
     final controller = mapController;
-    if (models.isEmpty || controller == null) return;
+    if (controller == null) return;
     final request = ++selectionRequest;
     setState(() => selectedId = targetModel.id);
-
-    /// 카메라 이동 (선)
-    await controller.animateCamera(
-      CameraUpdate.newLatLng(
-        LatLng(targetModel.lat, targetModel.lng),
+    final canceled = await controller.updateCamera(
+      NCameraUpdate.withParams(
+        target: NLatLng(targetModel.lat, targetModel.lng),
       ),
     );
-
-    if (!mounted || request != selectionRequest) return;
-    setState(() => showCard = true);
-
-    /// 새로운 마커들이 생성될때까지 기다리기
-    await Future.delayed(Duration(milliseconds: 222));
-
-    /// info 보여주기
-    if (!mounted || request != selectionRequest) return;
-    controller.showMarkerInfoWindow(MarkerId(targetModel.id));
+    if (mounted && !canceled && request == selectionRequest) {
+      setState(() => showCard = true);
+    }
   }
 
   void onTapShowCard(
@@ -247,38 +223,37 @@ class _LocationCampingScreenState
       );
     } else {
       /// 현재 index에 대한 카드 띄우기
-      onTapMarker(models: models, targetModel: targetModel);
+      onTapMarker(targetModel);
     }
   }
 
   Future<void> onTapRefresh() async {
-    await ref
-        .read(locationCampingViewModelProvider.notifier)
-        .paginate(isReFetch: true);
-
-    final state = ref.read(locationCampingViewModelProvider);
-
-    if (state is PaginationSuccess<CampingModel>) {
-      final models = state.items;
-
-      /// 에러가 난다면
-      if (state is PaginationFetchingError) {
-        final pState = state as PaginationFetchingError;
-
-        ToastService.show(text: pState.message, isError: true);
-
-        /// 응닶값이 비어있다면
-      } else if (models.isEmpty) {
-        ToastService.show(text: '근처 캠핑장을 찾을 수 없어요', isError: true);
-
-        /// 응답값이 존재하면
-      } else {
-        onTapMarker(models: models, targetModel: models.first);
+    final controller = mapController;
+    if (refreshing || controller == null) return;
+    refreshing = true;
+    try {
+      final position = await controller.getCameraPosition();
+      if (!mounted || controller != mapController) return;
+      ref.read(cameraPositionProvider.notifier).state = position;
+      await ref
+          .read(locationCampingViewModelProvider.notifier)
+          .paginate(isReFetch: true);
+      if (!mounted) return;
+      final state = ref.read(locationCampingViewModelProvider);
+      if (state is PaginationFetchingError<CampingModel>) {
+        ToastService.show(text: state.message, isError: true);
+      } else if (state is PaginationError) {
+        ToastService.show(text: state.message, isError: true);
+      } else if (state is PaginationSuccess<CampingModel>) {
+        if (state.items.isEmpty) {
+          ToastService.show(text: '근처 캠핑장을 찾을 수 없어요', isError: true);
+        } else {
+          await onTapMarker(state.items.first);
+        }
       }
-      await Future.delayed(Duration(milliseconds: 222));
-      setState(() {
-        showRefresh = false;
-      });
+    } finally {
+      refreshing = false;
+      if (mounted) setState(() => showRefresh = false);
     }
   }
 }

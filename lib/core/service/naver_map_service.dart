@@ -2,8 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 
+String? get _clientId => dotenv.env['NAVER_MAP_CLIENT_ID']?.trim();
+bool get hasNaverMapClientId => _clientId?.isNotEmpty ?? false;
+
 Future<void> initializeNaverMap() async {
-  final clientId = dotenv.env['NAVER_MAP_CLIENT_ID']?.trim();
+  final clientId = _clientId;
   if (!kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS) &&
