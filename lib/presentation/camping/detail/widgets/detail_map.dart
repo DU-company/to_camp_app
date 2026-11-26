@@ -107,6 +107,7 @@ class _Map extends StatelessWidget {
         height: 300,
         child: CustomMapView(
           key: ValueKey((model.id, model.lat, model.lng)),
+          forceGesture: true,
           initialCameraPosition: NCameraPosition(
             target: position,
             zoom: 14,

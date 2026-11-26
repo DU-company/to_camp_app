@@ -14,6 +14,7 @@ class CustomMapView extends ConsumerStatefulWidget {
     this.infoText,
     this.onMarkerTap,
     this.logoTopInset = 0,
+    this.forceGesture = false,
     this.onMapCreated,
     this.onMapGestureStarted,
     this.onCameraMove,
@@ -26,6 +27,7 @@ class CustomMapView extends ConsumerStatefulWidget {
   final String? infoText;
   final ValueChanged<String>? onMarkerTap;
   final double logoTopInset;
+  final bool forceGesture;
   final ValueChanged<NaverMapController>? onMapCreated;
   final VoidCallback? onMapGestureStarted;
   final ValueChanged<NCameraPosition>? onCameraMove;
@@ -153,6 +155,7 @@ class _CustomMapViewState extends ConsumerState<CustomMapView> {
         ) ==
         Brightness.dark;
     return NaverMap(
+      forceGesture: widget.forceGesture,
       options: NaverMapViewOptions(
         initialCameraPosition: widget.initialCameraPosition,
         mapType: isDark ? NMapType.navi : NMapType.basic,
