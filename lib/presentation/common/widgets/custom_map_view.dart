@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:to_camp/core/theme/service/theme_service.dart';
 import 'package:to_camp/core/service/naver_map_service.dart';
 
-class CustomMapView extends StatefulWidget {
+class CustomMapView extends ConsumerStatefulWidget {
   const CustomMapView({
     super.key,
     required this.initialCameraPosition,
@@ -30,10 +32,10 @@ class CustomMapView extends StatefulWidget {
   final VoidCallback? onCameraIdle;
 
   @override
-  State<CustomMapView> createState() => _CustomMapViewState();
+  ConsumerState<CustomMapView> createState() => _CustomMapViewState();
 }
 
-class _CustomMapViewState extends State<CustomMapView> {
+class _CustomMapViewState extends ConsumerState<CustomMapView> {
   final _markers = <String, NMarker>{};
   NaverMapController? _controller;
   NInfoWindow? _info;
@@ -145,9 +147,16 @@ class _CustomMapViewState extends State<CustomMapView> {
     if (!hasNaverMapClientId) {
       return const Center(child: Text('지도 설정을 확인해 주세요.'));
     }
+    final isDark =
+        ref.watch(
+          themeServiceProvider.select((theme) => theme.brightness),
+        ) ==
+        Brightness.dark;
     return NaverMap(
       options: NaverMapViewOptions(
         initialCameraPosition: widget.initialCameraPosition,
+        mapType: isDark ? NMapType.navi : NMapType.basic,
+        nightModeEnable: isDark,
         rotationGesturesEnable: false,
         logoAlign: NLogoAlign.leftTop,
         logoMargin: EdgeInsets.only(
