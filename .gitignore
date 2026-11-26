@@ -60,3 +60,6 @@ app.*.map.json
 *.p8
 
 /docs/
+
+# Generated Xcode build cache
+/ios/build/
