@@ -1,10 +1,19 @@
-import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_camp/core/const/data.dart';
 import 'package:to_camp/core/utils/platform_utils.dart';
 import 'package:flutter_riverpod/legacy.dart';
+
+enum CampingMarkerIcon {
+  tent(MARKER),
+  likedTent(MARKER_PINK),
+  dot('asset/img/marker_dot.png'),
+  likedDot('asset/img/marker_dot_pink.png');
+
+  const CampingMarkerIcon(this.asset);
+  final String asset;
+}
 
 final markerIconProvider =
     StateNotifierProvider<MarkerIconProvider, List<Uint8List>>(
@@ -18,18 +27,12 @@ class MarkerIconProvider extends StateNotifier<List<Uint8List>> {
 
   void setMarkerIcon() async {
     try {
-      Uint8List markerIcon;
-      Uint8List likedMarkerIcon;
-
-      markerIcon = await getBytesFromAsset(
-        MARKER,
-        PlatformUtils.setMarkerSize(),
+      final width = PlatformUtils.setMarkerSize();
+      state = await Future.wait(
+        CampingMarkerIcon.values.map(
+          (icon) => getBytesFromAsset(icon.asset, width),
+        ),
       );
-      likedMarkerIcon = await getBytesFromAsset(
-        MARKER_PINK,
-        PlatformUtils.setMarkerSize(),
-      );
-      state = [markerIcon, likedMarkerIcon];
     } catch (e) {
       state = [];
     }

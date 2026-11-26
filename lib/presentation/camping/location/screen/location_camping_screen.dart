@@ -50,9 +50,10 @@ class _LocationCampingScreenState
   bool showRefresh = false;
   bool showCard = true;
   bool userDrag = false;
-  int locationIndex = 0;
+  String? selectedId;
+  int selectionRequest = 0;
 
-  late final PlatformMapController mapController;
+  PlatformMapController? mapController;
 
   @override
   // TODO: implement wantKeepAlive
@@ -93,21 +94,19 @@ class _LocationCampingScreenState
     final locationCampingState = ref.watch(
       locationCampingViewModelProvider,
     );
-    final totalModels =
-        locationCampingState is PaginationSuccess<CampingModel>
-        ? [
-            ...locationCampingState.items,
-            ...WishlistUtils.extractCampingList(wishlist),
-          ]
-        : <CampingModel>[];
-
+    final modelsById = <String, CampingModel>{};
+    if (locationCampingState is PaginationSuccess<CampingModel>) {
+      for (final model in [
+        ...locationCampingState.items,
+        ...WishlistUtils.extractCampingList(wishlist),
+      ]) {
+        modelsById.putIfAbsent(model.id, () => model);
+      }
+    }
+    final totalModels = modelsById.values.toList();
     final hasItem = totalModels.isNotEmpty;
-
-    // 필요할까? >> 지도에서 좋아요 해제하면 totalItems의 range가 줄어들기 때문에
-    final isValidIndex = locationIndex < totalModels.length;
-    final targetModel = !hasItem
-        ? null
-        : totalModels[isValidIndex ? locationIndex : 0];
+    final targetModel =
+        modelsById[selectedId] ?? totalModels.firstOrNull;
 
     return DefaultLayout(
       isLoading:
@@ -129,8 +128,11 @@ class _LocationCampingScreenState
                   showCard: showCard,
                   onTapShowCard: () =>
                       onTapShowCard(totalModels, targetModel!),
-                  onTapMyLocation: () =>
-                      widget.onTapMyLocation(mapController),
+                  onTapMyLocation: () {
+                    final controller = mapController;
+                    if (controller != null)
+                      widget.onTapMyLocation(controller);
+                  },
                 ),
               ),
 
@@ -160,6 +162,7 @@ class _LocationCampingScreenState
                 totalModels: totalModels,
                 wishlist: wishlist,
                 markerIcons: markerIcons,
+                selectedId: targetModel?.id,
                 onTap: (model) => onTapMarker(
                   models: totalModels,
                   targetModel: model,
@@ -192,7 +195,9 @@ class _LocationCampingScreenState
     List<CampingModel> totalModels,
   ) async {
     mapController = controller;
+    final request = selectionRequest;
     await Future.delayed(Duration(milliseconds: 333));
+    if (!mounted || request != selectionRequest) return;
     if (totalModels.isNotEmpty) {
       onTapMarker(
         models: totalModels,
@@ -205,29 +210,27 @@ class _LocationCampingScreenState
     required List<CampingModel> models,
     required CampingModel targetModel,
   }) async {
-    if (models.isEmpty) return;
+    final controller = mapController;
+    if (models.isEmpty || controller == null) return;
+    final request = ++selectionRequest;
+    setState(() => selectedId = targetModel.id);
 
     /// 카메라 이동 (선)
-    await mapController.animateCamera(
+    await controller.animateCamera(
       CameraUpdate.newLatLng(
         LatLng(targetModel.lat, targetModel.lng),
       ),
     );
 
-    /// index 변경
-    final index = models.indexWhere((e) => e.id == targetModel.id);
-
-    /// 카드 띄우기 (후)
-    setState(() {
-      locationIndex = index;
-      showCard = true;
-    });
+    if (!mounted || request != selectionRequest) return;
+    setState(() => showCard = true);
 
     /// 새로운 마커들이 생성될때까지 기다리기
     await Future.delayed(Duration(milliseconds: 222));
 
     /// info 보여주기
-    mapController.showMarkerInfoWindow(MarkerId(targetModel.id));
+    if (!mounted || request != selectionRequest) return;
+    controller.showMarkerInfoWindow(MarkerId(targetModel.id));
   }
 
   void onTapShowCard(
@@ -266,10 +269,7 @@ class _LocationCampingScreenState
 
         /// 응닶값이 비어있다면
       } else if (models.isEmpty) {
-        ToastService.show(
-          text: '근처 캠핑장을 찾을 수 없어요',
-          isError: true,
-        );
+        ToastService.show(text: '근처 캠핑장을 찾을 수 없어요', isError: true);
 
         /// 응답값이 존재하면
       } else {

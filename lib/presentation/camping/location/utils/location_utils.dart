@@ -1,4 +1,6 @@
+import 'dart:ui' show Offset;
 import 'package:flutter/foundation.dart';
+import 'package:to_camp/core/provider/marker_icon_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:platform_maps_flutter/platform_maps_flutter.dart';
 import 'package:to_camp/data/models/camping_model.dart';
@@ -44,19 +46,30 @@ class LocationUtils {
     required List<CampingModel> totalModels,
     required List<LikeCategoryModel> wishlist,
     required List<Uint8List> markerIcons,
+    required String? selectedId,
     required Function(CampingModel model) onTap,
   }) {
     if (markerIcons.isEmpty) return [];
 
+    final icons = markerIcons
+        .map(BitmapDescriptor.fromBytes)
+        .toList();
     return List.generate(totalModels.length, (index) {
       final model = totalModels[index];
       final isLiked = WishlistUtils.checkIsLiked(wishlist, model);
-      final markerIcon = BitmapDescriptor.fromBytes(
-        markerIcons[isLiked ? 1 : 0],
-      );
+      final selected = model.id == selectedId;
+      final icon = switch ((selected, isLiked)) {
+        (true, true) => CampingMarkerIcon.likedTent,
+        (true, false) => CampingMarkerIcon.tent,
+        (false, true) => CampingMarkerIcon.likedDot,
+        (false, false) => CampingMarkerIcon.dot,
+      };
       return Marker(
         markerId: MarkerId(model.id),
-        icon: markerIcon,
+        icon: icons[icon.index],
+        anchor: selected
+            ? const Offset(0.5, 1)
+            : const Offset(0.5, 0.5),
 
         position: LatLng(model.lat, model.lng),
         onTap: () => onTap(model),
