@@ -63,3 +63,5 @@ app.*.map.json
 
 # Generated Xcode build cache
 /ios/build/
+
+/android/.kotlin/
