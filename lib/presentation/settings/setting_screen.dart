@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:to_camp/core/const/data.dart';
 import 'package:to_camp/presentation/common/widgets/custom_divider.dart';
@@ -8,6 +9,11 @@ import 'package:to_camp/core/theme/service/theme_service.dart';
 import 'package:to_camp/presentation/camping/recent/recent_camping_view_model.dart';
 import 'package:to_camp/presentation/common/widgets/app_info.dart';
 import 'package:to_camp/core/utils/deep_link_utils.dart';
+
+final _appVersionProvider = FutureProvider<String>((ref) async {
+  final info = await PackageInfo.fromPlatform();
+  return info.version;
+});
 
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
@@ -49,7 +55,14 @@ class SettingScreen extends ConsumerWidget {
 
               const CustomDivider(),
 
-              const Tile(text: '버전 정보 $APP_VERSION', onTap: null),
+              Tile(
+                text: ref.watch(_appVersionProvider).when(
+                  data: (version) => '버전 정보 v$version',
+                  loading: () => '버전 정보 확인 중',
+                  error: (_, _) => '버전 정보를 확인할 수 없어요',
+                ),
+                onTap: null,
+              ),
             ],
           ),
         ),

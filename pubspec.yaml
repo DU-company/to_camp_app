@@ -54,6 +54,7 @@ dependencies:
 
   # DeepLink
   go_router: ^16.2.0
+  package_info_plus: ^8.3.1
   share_plus: ^11.1.0
   url_launcher: ^6.3.2
 
